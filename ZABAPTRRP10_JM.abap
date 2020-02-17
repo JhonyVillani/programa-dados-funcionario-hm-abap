@@ -14,9 +14,19 @@
 * Observações:                                                        *
 *---------------------------------------------------------------------*
 
-REPORT ZABAPTRRP10_JM.
+REPORT zabaptrrp10_jm.
 
 INCLUDE zabaptrrp10_jm_top. "Declarações Globais
 INCLUDE zabaptrrp10_jm_src. "Tela de seleção
 INCLUDE zabaptrrp10_jm_eve. "Eventos
 INCLUDE zabaptrrp10_jm_for. "Rotinas
+INCLUDE zabaptrrp10_jm_c01. "Classe
+
+DATA:
+      go_dados TYPE REF TO lcl_dados. "Classe local
+
+START-OF-SELECTION.
+  CREATE OBJECT go_dados.
+
+  go_dados->processamento( ).
+  go_dados->exibicao( ).
