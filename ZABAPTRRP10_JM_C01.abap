@@ -9,9 +9,9 @@
 *----------------------------------------------------------------------*
 CLASS lcl_dados DEFINITION.
   PUBLIC SECTION.
-    TYPES:
-      BEGIN OF ty_s_saida,
+    TYPES: BEGIN OF ty_s_saida,
         bukrs     TYPE p0001-bukrs,
+        butxt     TYPE t001-butxt,
         werks     TYPE p0001-werks,
         pernr     TYPE p0001-pernr,
         cname     TYPE p0002-cname,
@@ -19,13 +19,22 @@ CLASS lcl_dados DEFINITION.
         stell     TYPE p0001-stell,
       END OF ty_s_saida.
 
+    TYPES: BEGIN OF ty_s_saida_descricao,
+            bukrs TYPE t001-bukrs,
+            butxt TYPE t001-butxt,
+           END OF ty_s_saida_descricao.
+
+    DATA: gt_t001 TYPE TABLE OF ty_s_saida_descricao.
+
+    DATA: gs_dados_descricao TYPE ty_s_saida_descricao.
+
     DATA: mt_dados TYPE TABLE OF ty_s_saida.
 
     DATA: mo_alv TYPE REF TO cl_salv_table.
 
     METHODS:
-       processamento,
-       exibicao.
+      processamento,
+      exibicao.
 
 ENDCLASS.                    "lcl_dados DEFINITION
 
@@ -35,64 +44,38 @@ ENDCLASS.                    "lcl_dados DEFINITION
 *
 *----------------------------------------------------------------------*
 CLASS lcl_dados IMPLEMENTATION.
+
   METHOD processamento.
 
-    DATA: lt_p0001 TYPE TABLE OF p0001,
-          lt_p0002 TYPE TABLE OF p0002,
-          ls_p0001 TYPE p0001,
-          ls_p0002 TYPE p0002,
-          ls_saida TYPE ty_s_saida,
-          ls_pernr LIKE LINE OF s_pernr.
+*   Popula uma tabela com as empresas
+    SELECT bukrs
+           butxt
+     FROM t001
+     INTO TABLE gt_t001.
 
-*   Percorre todas as matrículas selecionadas
-    LOOP AT s_pernr INTO ls_pernr.
+    IF gt_t001 IS NOT INITIAL.
+      SORT gt_t001 BY bukrs.
+    ENDIF.
 
-*     Lê infotipo 0001 - Atribuição Organizacional
-      CALL FUNCTION 'HR_READ_INFOTYPE'
-        EXPORTING
-          pernr           = ls_pernr-low
-          infty           = '0001'
-          begda           = sy-datum
-          endda           = sy-datum
-        TABLES
-          infty_tab       = lt_p0001
-        EXCEPTIONS
-          infty_not_found = 1
-          OTHERS          = 2.
+*   Macro para banco de dados lógico
+    rp_provide_from_last p0001 space pn-begda pn-endda.
+    rp_provide_from_last p0002 space pn-begda pn-endda.
 
-*     Lê infotipo 0002 - Atribuição Organizacional
-      CALL FUNCTION 'HR_READ_INFOTYPE'
-        EXPORTING
-          pernr           = ls_pernr-low
-          infty           = '0002'
-          begda           = sy-datum
-          endda           = sy-datum
-        TABLES
-          infty_tab       = lt_p0002
-        EXCEPTIONS
-          infty_not_found = 1
-          OTHERS          = 2.
+    DATA: ls_saida TYPE ty_s_saida.
 
-*     Lê o primeiro registro/linha da tabela p0001 gerada pela função e envia para uma workarea
-      READ TABLE lt_p0001 INTO ls_p0001 INDEX 1.
+*   Lê o primeiro registro/linha da tabela populada por bukrs gerada pela função e envia para uma workarea gs_dados_descricao
+    READ TABLE gt_t001 INTO gs_dados_descricao WITH KEY bukrs = p0001-bukrs.
+    CLEAR ls_saida.
 
-*     Lê o primeiro registro/linha da tabela p0002 gerada pela função e envia para uma workarea
-      READ TABLE lt_p0002 INTO ls_p0002 INDEX 1.
+    ls_saida-bukrs = p0001-bukrs.
+    ls_saida-butxt = gs_dados_descricao-butxt.
+    ls_saida-werks = p0001-werks.
+    ls_saida-pernr = p0001-pernr.
+    ls_saida-cname = p0002-cname.
+    ls_saida-gbdat = p0002-gbdat.
+    ls_saida-stell = p0001-stell.
 
-*     Envia os dados da workarea para uma workarea definida pelo TYPES com campos melhor definidos
-      ls_saida-bukrs = ls_p0001-bukrs.
-      ls_saida-werks = ls_p0001-werks.
-      ls_saida-pernr = ls_p0001-pernr.
-      ls_saida-cname = ls_p0002-cname.
-      ls_saida-gbdat = ls_p0002-gbdat.
-      ls_saida-stell = ls_p0001-stell.
-
-      APPEND ls_saida TO mt_dados. "Grava os dados em uma tabela final e limpa as variáveis na sequência
-
-      CLEAR: lt_p0001, ls_p0001. "limpa registros da estrutura
-      CLEAR: lt_p0002, ls_p0002. "limpa registros da estrutura
-
-    ENDLOOP.
+    APPEND ls_saida TO mt_dados. "Grava os dados em uma tabela final e limpa as variáveis na sequência
 
   ENDMETHOD.                    "processamento
 

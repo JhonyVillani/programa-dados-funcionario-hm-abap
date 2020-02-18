@@ -2,4 +2,10 @@
 *&  Include           ZABAPTRRP10_JM_TOP
 *&---------------------------------------------------------------------*
 
-TABLES: pa0001.
+NODES: peras.
+
+TABLES: pa0001,
+        pernr.
+
+INFOTYPES: 0001,
+           0002.
